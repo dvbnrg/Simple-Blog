@@ -7,7 +7,7 @@ import (
 // BlogPost model for the database
 type BlogPost struct {
 	gorm.Model
-	// ID      int64  `json: "id"`
+	ID      int64  `json: "id"`
 	Title   string `json: "title"`
 	Content string `json: "content"`
 }
