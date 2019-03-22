@@ -1,14 +1,50 @@
 package main
 
 import (
+	"log"
 	"net/http"
+	"os"
+
+	"github.com/joho/godotenv"
+
+	// DB packages - external
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/mysql"
 
 	// Gin packages
 	"github.com/gin-gonic/contrib/static"
 	"github.com/gin-gonic/gin"
+
+	// DB - internal
+
+	"blogwebapp/server/db/models"
+	"blogwebapp/server/utils/db/handler"
+	// "blogwebapp/server/utils/db/migrate"
 )
 
+var db *gorm.DB
+var err error
+
 func main() {
+
+	err := godotenv.Load("../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	dbConnStr := os.Getenv("MYSQLSTR")
+
+	// Set up DB connection
+	db, err = gorm.Open("mysql", dbConnStr)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err = db.DB().Ping(); err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+	db.AutoMigrate(&models.BlogPost{})
+	//migrate.Start(db)
 
 	// Set the router as the default one shipped with Gin
 	router := gin.Default()
@@ -23,28 +59,15 @@ func main() {
 		// Blog Subgroup
 		blog := api.Group("/blog/")
 		{
-			blog.GET("/", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"message": "GET all blog posts here",
-				})
-			})
-			blog.GET("/:id", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"message": "GET blog post by id",
-				})
-			})
-			blog.PUT("/:id", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"message": "modify an existing blog post",
-				})
-			})
-			blog.POST("/", func(c *gin.Context) {
-				c.JSON(http.StatusOK, gin.H{
-					"message": "POST to a new blogid",
-					// if there is an exsisting id don't post send an error
-					// could include some meta data
-				})
-			})
+			blog.GET("/", handler.GetAllBlogPosts(db))
+
+			blog.GET("/:id", handler.GetBlogPostByID(db))
+
+			blog.PUT("/:id", handler.UpdateBlogPost(db))
+
+			blog.POST("/", handler.CreateBlogPost(db))
+
+			blog.DELETE("/:id", handler.DeleteBlogPost(db))
 		}
 		// Begin api base routes
 		api.GET("/", func(c *gin.Context) {
