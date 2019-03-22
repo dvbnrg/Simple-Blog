@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	// Models
-	"go-gin-react/server/db/models"
+	"blogwebapp/server/db/models"
 
 	// Gin and Gorm
 	"github.com/gin-gonic/gin"
